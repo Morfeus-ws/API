@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using WebApplication1.Application;
 using WebApplication1.Model;
-using WebApplication1.Data;
 using WebApplication1.Interfaces;
 
 
@@ -11,22 +10,22 @@ namespace WebApplication1.Business
 {
     public class GrupoBusiness : IGrupoBusiness
     {
-        private readonly ITourOfHeroesRepository _tourOfHeroesRepository;
+        private readonly ITourOfHeroesRepository _repository;
 
-        public GrupoBusiness(ITourOfHeroesRepository tourOfHeroesRepository)
+        public GrupoBusiness(ITourOfHeroesRepository repository)
         {
-            _tourOfHeroesRepository = tourOfHeroesRepository;
+            _repository = repository;
         }
 
         
         public IEnumerable<Grupo> GetGrupos()
         {
-            return _tourOfHeroesRepository.GetAllGrupos();
+            return _repository.GetAllGrupos();
         }
 
         public Grupo GetGrupoById(int id)
         {
-            return _tourOfHeroesRepository.GetGrupoById(id);
+            return _repository.GetGrupoById(id);
         }
 
         /// <summary>
@@ -39,7 +38,7 @@ namespace WebApplication1.Business
         public Grupo CreateGrupo(GrupoPostDTO grupoDto)
         {
             var herois = ValidateNewGrupo(grupoDto);
-            var newGrupo = _tourOfHeroesRepository.CreateGrupo(new Grupo
+            var newGrupo = _repository.CreateGrupo(new Grupo
             {
                 Idtipo = grupoDto.Idtipo,
                 Nome = grupoDto.Nome,
@@ -49,9 +48,9 @@ namespace WebApplication1.Business
                 throw new Exception("Grupo não foi criado adequadamente");
             }
 
-            _tourOfHeroesRepository.AssignHerosToGroup(herois, newGrupo);
+            _repository.AssignHerosToGroup(herois, newGrupo);
 
-            return _tourOfHeroesRepository.GetGrupoById(newGrupo.Id);
+            return _repository.GetGrupoById(newGrupo.Id);
         }
 
         public void UpdateGrupo(GrupoPostDTO grupoDto)
@@ -59,23 +58,24 @@ namespace WebApplication1.Business
             var (grupo, herois) = ValidateUpdateGrupo(grupoDto);
             grupo.Nome = grupoDto.Nome;
             grupo.Idtipo = grupoDto.Idtipo;
-            _tourOfHeroesRepository.UpdateGrupo(grupo, herois);
-            _tourOfHeroesRepository.AssignHerosToGroup(herois, grupo);
+            var enumerable = herois as Heroi[] ?? herois.ToArray();
+            _repository.UpdateGrupo(grupo, enumerable);
+            _repository.AssignHerosToGroup(enumerable, grupo);
         }
 
         public void DeleteGrupo(int id)
         {
-            var grupo = _tourOfHeroesRepository.GetGrupoById(id);
+            var grupo = _repository.GetGrupoById(id);
             if (grupo.GrupoHerois.Any())
                 throw new Exception("Grupo não pode ser excluído, pois ele ainda contem heróis");
 
-            _tourOfHeroesRepository.DeleteGrupo(grupo);
+            _repository.DeleteGrupo(grupo);
         }
 
 
         private (Grupo, IEnumerable<Heroi>) ValidateUpdateGrupo(GrupoPostDTO grupoDto)
         {
-            var grupo = _tourOfHeroesRepository.GetGrupoById(grupoDto.Id);
+            var grupo = _repository.GetGrupoById(grupoDto.Id);
             if (grupo is null)
             {
                 throw new GrupoValidationException("Group not found");
@@ -90,7 +90,7 @@ namespace WebApplication1.Business
             // * [X] Ao alterar o nome do grupo, verificar se não já não existe.            
             if (!grupo.Nome.Equals(grupoDto.Nome, StringComparison.CurrentCultureIgnoreCase))
             {
-                var anotherGroup = _tourOfHeroesRepository.GetGrupoByName(grupoDto.Nome);
+                var anotherGroup = _repository.GetGrupoByName(grupoDto.Nome);
                 if (anotherGroup != null)
                 {
                     throw new GrupoValidationException($"Group with name '{anotherGroup.Nome}' exists");
@@ -98,7 +98,7 @@ namespace WebApplication1.Business
             }
 
             // * [ ] Verificar se ids dos herois informados existem e se não estão repetidos
-            var herois = _tourOfHeroesRepository.GetHeroisById(grupoDto.Lista);
+            var herois = _repository.GetHeroisById(grupoDto.Lista);
             return (grupo, herois);
         }
 
@@ -112,7 +112,7 @@ namespace WebApplication1.Business
             }
 
             // * [X] os integrantes devem ter mesmo tipo que o grupo.
-            var herois = _tourOfHeroesRepository.GetHeroisById(grupoDto.Lista);
+            var herois = _repository.GetHeroisById(grupoDto.Lista);
 
             foreach (var heroi in herois)
             {
@@ -127,7 +127,7 @@ namespace WebApplication1.Business
 
 
             // * [X] Nome do grupo não pode ser repetido.
-            var grupo = _tourOfHeroesRepository.GetGrupoByName(grupoDto.Nome);
+            var grupo = _repository.GetGrupoByName(grupoDto.Nome);
             if (grupo != null)
             {
                 throw new GrupoValidationException($"Group '{grupoDto.Nome}' just exists");

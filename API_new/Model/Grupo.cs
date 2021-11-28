@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using WebApplication1.Business;
+﻿using System.Collections.Generic;
 
 namespace WebApplication1.Model
 {

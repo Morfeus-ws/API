@@ -36,16 +36,16 @@ namespace WebApplication1.Controllers
         }
 
         [HttpPost]
-        public ActionResult<Grupo> Post(GrupoPostDTO grupoDTO)
+        public ActionResult<Grupo> Post(GrupoPostDTO grupoDto)
         {
-            var grupo = _grupoBusiness.CreateGrupo(grupoDTO);
+            var grupo = _grupoBusiness.CreateGrupo(grupoDto);
             return Ok(grupo);
         }
 
         [HttpPut]
-        public IActionResult Put(GrupoPostDTO grupoDTO)
+        public IActionResult Put(GrupoPostDTO grupoDto)
         {
-            _grupoBusiness.UpdateGrupo(grupoDTO);
+            _grupoBusiness.UpdateGrupo(grupoDto);
             return Ok();
         }
 

@@ -1,7 +1,4 @@
-﻿using System.Text.Json.Serialization;
-using WebApplication1.Model;
-
-namespace WebApplication1.Model
+﻿namespace WebApplication1.Model
 {
     public class Heroi
     {
