@@ -4,161 +4,143 @@ using System.Linq;
 using WebApplication1.Application;
 using WebApplication1.Model;
 using WebApplication1.Data;
+using WebApplication1.Interfaces;
 
 
 namespace WebApplication1.Business
 {
-    public class GrupoBusiness
+    public class GrupoBusiness : IGrupoBusiness
     {
-        private readonly TourOfHeroesRepositorio _tourOfHeroesRepository;
+        private readonly ITourOfHeroesRepository _tourOfHeroesRepository;
 
-        public GrupoBusiness(TourOfHeroesRepositorio tourOfHeroesRepository)
+        public GrupoBusiness(ITourOfHeroesRepository tourOfHeroesRepository)
         {
             _tourOfHeroesRepository = tourOfHeroesRepository;
         }
 
-        public List<Grupo> RetornaGrupos()
+        
+        public IEnumerable<Grupo> GetGrupos()
         {
-            return _tourOfHeroesRepository.BuscarGrupos();
+            return _tourOfHeroesRepository.GetAllGrupos();
         }
 
-        public Grupo RetornaGrupoId(int id)
+        public Grupo GetGrupoById(int id)
         {
-            var grupo = _tourOfHeroesRepository.BuscarGrupos().FirstOrDefault(x => x.Id == id);
-
-            return grupo;
+            return _tourOfHeroesRepository.GetGrupoById(id);
         }
 
-        public void DeletaGrupo(int id)
+        /// <summary>
+        /// Criar grupo
+        /// </summary>
+        /// <param name="grupoDto"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        /// <exception cref="NotImplementedException"></exception>
+        public Grupo CreateGrupo(GrupoPostDTO grupoDto)
         {
-            if (_tourOfHeroesRepository.GrupoTemHerois(id))
+            var herois = ValidateNewGrupo(grupoDto);
+            var newGrupo = _tourOfHeroesRepository.CreateGrupo(new Grupo
+            {
+                Idtipo = grupoDto.Idtipo,
+                Nome = grupoDto.Nome,
+            });
+            if (newGrupo is null)
+            {
+                throw new Exception("Grupo não foi criado adequadamente");
+            }
+
+            _tourOfHeroesRepository.AssignHerosToGroup(herois, newGrupo);
+
+            return _tourOfHeroesRepository.GetGrupoById(newGrupo.Id);
+        }
+
+        public void UpdateGrupo(GrupoPostDTO grupoDto)
+        {
+            var (grupo, herois) = ValidateUpdateGrupo(grupoDto);
+            grupo.Nome = grupoDto.Nome;
+            grupo.Idtipo = grupoDto.Idtipo;
+            _tourOfHeroesRepository.UpdateGrupo(grupo, herois);
+            _tourOfHeroesRepository.AssignHerosToGroup(herois, grupo);
+        }
+
+        public void DeleteGrupo(int id)
+        {
+            var grupo = _tourOfHeroesRepository.GetGrupoById(id);
+            if (grupo.GrupoHerois.Any())
                 throw new Exception("Grupo não pode ser excluído, pois ele ainda contem heróis");
 
-            _tourOfHeroesRepository.ExcluirGrupo(id);
-        }
-
-        public void AtualizaGrupo(GrupoPostDTO grupoDTO)
-        {
-            // nao ta validando se grupo está vazio para poder alterar o tipo dele
-
-            if (!_tourOfHeroesRepository.BuscarGrupo(grupoDTO.Id))
-            {
-                throw new Exception("Grupo não existe");
-            }
-
-            // nao ta validando se o tipo dos herois adicionados é o mesmo tipo do grupo
-            List<HeroiGrupo> lista = new List<HeroiGrupo>();
-
-            grupoDTO.Lista.ForEach(x =>
-            {
-                var heroigrupo = new HeroiGrupo(grupoDTO.Id, x);
-
-                lista.Add(heroigrupo);
-            });
-
-            var grupo = new Grupo(grupoDTO.Id, grupoDTO.Nome, grupoDTO.Idtipo, lista);
-
-
-            _tourOfHeroesRepository.AlteraGrupo(grupo);
+            _tourOfHeroesRepository.DeleteGrupo(grupo);
         }
 
 
-        public Grupo CriarGrupo(GrupoPostDTO grupoDTO)
+        private (Grupo, IEnumerable<Heroi>) ValidateUpdateGrupo(GrupoPostDTO grupoDto)
         {
-            // Remover referencia a classe Data
-            var id = Data.Data.grupos.Count + 1;
-            List<int> heroGrupo = new List<int>();
-
-            ValidaGrupo(grupoDTO);
-
-            if (!ValidaSeIdHeroIgualIDGrupo(grupoDTO))
+            var grupo = _tourOfHeroesRepository.GetGrupoById(grupoDto.Id);
+            if (grupo is null)
             {
-                throw new Exception("Tipo do Heroi adicionado não corresponde ao tipo do Grupo!");
+                throw new GrupoValidationException("Group not found");
             }
 
-
-            if (ValidaIdHeroRepeteNoGrupo(grupoDTO))
+            //* [X] Só deixar alterar o tipo do grupo se não tiver nenhum integrante.
+            if (grupo.Idtipo != grupoDto.Idtipo && grupo.GrupoHerois.Count > 0)
             {
-                throw new Exception("Heroi já esta incluido no grupo!");
+                throw new GrupoValidationException("Group must be empty for change type");
             }
 
-            List<HeroiGrupo> lista = new List<HeroiGrupo>();
-            grupoDTO.Lista.ForEach(idHeroi => lista.Add(new HeroiGrupo(id, idHeroi)));
-
-
-            var grupo = new Grupo(0, grupoDTO.Nome, grupoDTO.Idtipo, lista);
-
-            _tourOfHeroesRepository.AdicionarGrupo(grupo);
-
-
-            return grupo;
-        }
-
-
-        // remover referencia a classe Data
-        public void ValidaGrupo(GrupoPostDTO grupoPostDTO)
-        {
-            if (grupoPostDTO.Nome == "")
+            // * [X] Ao alterar o nome do grupo, verificar se não já não existe.            
+            if (!grupo.Nome.Equals(grupoDto.Nome, StringComparison.CurrentCultureIgnoreCase))
             {
-                throw new Exception("Nome não esta preenchido!");
-            }
-
-            foreach (Grupo grupo in Data.Data.grupos)
-            {
-                if (grupoPostDTO.Nome == grupo.Nome)
+                var anotherGroup = _tourOfHeroesRepository.GetGrupoByName(grupoDto.Nome);
+                if (anotherGroup != null)
                 {
-                    throw new Exception("Nome do grupo já existe");
-                }
-            }
-        }
-
-
-        public bool ValidaIdHeroRepeteNoGrupo(GrupoPostDTO grupoPostDTO)
-        {
-            for (int i = 1; i < grupoPostDTO.Lista.Count; i++)
-            {
-                var x = grupoPostDTO.Lista.Where(y => y == grupoPostDTO.Lista[i]).Count();
-                if (x > 1)
-                {
-                    return true;
+                    throw new GrupoValidationException($"Group with name '{anotherGroup.Nome}' exists");
                 }
             }
 
-            return false;
+            // * [ ] Verificar se ids dos herois informados existem e se não estão repetidos
+            var herois = _tourOfHeroesRepository.GetHeroisById(grupoDto.Lista);
+            return (grupo, herois);
         }
 
-        // Esse metodo deveria estar sendo usado no Adicionar e no Alterar, pra verificar se todos os herois informados como
-        // integrantes do grupo são herois validos
-        private bool ValidaHeros(List<int> idHerois)
+        private IEnumerable<Heroi> ValidateNewGrupo(GrupoPostDTO grupoDto)
         {
-            var Hero = new HeroBusiness(_tourOfHeroesRepository);
-            foreach (var idHeroi in idHerois)
+            // * [X] Nome e devem estar preenchidos
+            if (string.IsNullOrWhiteSpace(grupoDto.Nome) ||
+                grupoDto.Idtipo < 0)
             {
-                var hero = Hero.RetornaHeroId(idHeroi);
-                if (hero == null)
+                throw new GrupoValidationException("Missing data: nome, idtipo");
+            }
+
+            // * [X] os integrantes devem ter mesmo tipo que o grupo.
+            var herois = _tourOfHeroesRepository.GetHeroisById(grupoDto.Lista);
+
+            foreach (var heroi in herois)
+            {
+                if (heroi.Idtipo != grupoDto.Idtipo)
                 {
-                    throw new Exception("Heroi adicionado no Grupo, não encontrado!");
+                    throw new GrupoValidationException(
+                        $"Expected tipo '{grupoDto.Idtipo}' for heroi #{heroi.Id} = '{heroi.Idtipo}'");
                 }
             }
 
-            return true;
-        }
+            // * [ ] Verificar se ids dos herois informados existem e se não estão repetidos
 
-        // alterar metodo para remover referencia à classe Data e comparar o tipo do heroi com o tipo do grupo
-        // trocar nome do metodo para ficar mais correto e facil de entender o que o metodo faz
-        public bool ValidaSeIdHeroIgualIDGrupo(GrupoPostDTO grupoPostDTO)
-        {
-            foreach (Heroi PercoreHeros in Data.Data.heroes)
+
+            // * [X] Nome do grupo não pode ser repetido.
+            var grupo = _tourOfHeroesRepository.GetGrupoByName(grupoDto.Nome);
+            if (grupo != null)
             {
-                foreach (int PercoreHeroID in grupoPostDTO.Lista)
-                {
-                    if (PercoreHeros.Id == PercoreHeroID)
-                    {
-                    }
-                }
+                throw new GrupoValidationException($"Group '{grupoDto.Nome}' just exists");
             }
 
-            return true;
+            return herois;
+        }
+    }
+
+    internal class GrupoValidationException : Exception
+    {
+        public GrupoValidationException(string message) : base(message)
+        {
         }
     }
 }

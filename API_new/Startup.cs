@@ -14,7 +14,9 @@ using Microsoft.OpenApi.Models;
 using System.Text.Json.Serialization;
 using Oracle.ManagedDataAccess.Client;
 using Microsoft.AspNetCore.Http;
+using WebApplication1.Business;
 using WebApplication1.Data;
+using WebApplication1.Interfaces;
 using WebApplication1.Model;
 
 namespace WebApplication1
@@ -32,6 +34,10 @@ namespace WebApplication1
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddDbContext<TourOfHeroesContexto>();
+            services
+                .AddScoped<ITourOfHeroesRepository, TourOfHeroesRepository>()
+                .AddScoped<IGrupoBusiness, GrupoBusiness>()
+                .AddScoped<IHeroBusiness, HeroBusiness>();
             services.AddControllers().AddNewtonsoftJson(x =>
                 x.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
             services.AddControllers();

@@ -4,7 +4,7 @@
 
 ### Ao adicionar:
 
-* [ ] Se nome, nome de heroi, poder, 
+* [ ] Se nome, nome de heroi, poder, estão preenchidos.
 * [ ] Se nome de heroi não está repetido.
 
 ### Ao alterar:

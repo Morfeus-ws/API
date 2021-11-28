@@ -6,17 +6,18 @@ using WebApplication1.Model;
 using WebApplication1.Data;
 using Microsoft.EntityFrameworkCore;
 using WebApplication1.Application;
+using WebApplication1.Interfaces;
 
 namespace WebApplication1.Business
 {
-    public class HeroBusiness
+    public class HeroBusiness:IHeroBusiness
     {
 
-        private TourOfHeroesRepositorio _tourOfHeroRepoitory;
+        private TourOfHeroesRepository _tourOfHeroRepoitory;
 
-        public HeroBusiness(TourOfHeroesRepositorio tourOfHeroesRepositorio)
+        public HeroBusiness(TourOfHeroesRepository tourOfHeroesRepository)
         {
-            _tourOfHeroRepoitory = tourOfHeroesRepositorio;
+            _tourOfHeroRepoitory = tourOfHeroesRepository;
         }
 
         public List<Heroi> RetornaHeros()

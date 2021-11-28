@@ -12,7 +12,7 @@ namespace WebApplication1.Controllers
     public class HeroController : ControllerBase
     {
         //nem eu sei oque fiz aqui, mas ta fucionando
-        private HeroBusiness _heroBusiness = new HeroBusiness(new TourOfHeroesRepositorio(new TourOfHeroesContexto()));
+        private HeroBusiness _heroBusiness = new HeroBusiness(new TourOfHeroesRepository(new TourOfHeroesContexto()));
 
 
         [HttpGet]
