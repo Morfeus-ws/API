@@ -32,7 +32,7 @@ namespace WebApplication1.Business
         public void DeletaGrupo(int id)
         {
             if (_tourOfHeroesRepository.GrupoTemHerois(id))
-                throw new Exception("Grupo não pode ser exclído, pois ele ainda contem heróis");
+                throw new Exception("Grupo não pode ser excluído, pois ele ainda contem heróis");
 
             _tourOfHeroesRepository.ExcluirGrupo(id);
         }

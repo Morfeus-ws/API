@@ -1,81 +1,61 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
-using WebApplication1.Business;
+using WebApplication1.Interfaces;
 using WebApplication1.Model;
-
 
 
 namespace WebApplication1.Data
 {
-    public class TourOfHeroesRepositorio
+    public class TourOfHeroesRepositorio : ITourOfHeroesRepository
     {
-        private TourOfHeroesContexto _TourOfHeroesContexto;
+        private readonly TourOfHeroesContexto _Context;
 
-        public TourOfHeroesRepositorio(TourOfHeroesContexto tourOfHeroesContexto)
+        public TourOfHeroesRepositorio(TourOfHeroesContexto context)
         {
-            _TourOfHeroesContexto = tourOfHeroesContexto;
+            _Context = context;
         }
-    
+
 
         #region Heroi
 
         public void AdicionarHeroi(Heroi heroi)
         {
-            using (var db = new TourOfHeroesContexto())
-            {
-                db.Heroi.Add(heroi);
-                db.SaveChanges();
-               
-            }
+            using var db = new TourOfHeroesContexto();
+            db.Heroi.Add(heroi);
+            db.SaveChanges();
         }
 
         public bool BuscarHeroi(long id)
         {
-            using (var db = new TourOfHeroesContexto())
-            {
-                var returno = _TourOfHeroesContexto.HeroiGrupo.Any(x => x.IdHero == id);
-                return returno;
-            }
+            var returno = _Context.HeroiGrupo.Any(x => x.IdHero == id);
+            return returno;
         }
 
         public bool GrupoTemHerois(long idGrupo)
         {
-            using var db = new TourOfHeroesContexto();
-            return _TourOfHeroesContexto.HeroiGrupo.Any(hg => hg.IdGrupo == idGrupo);
+            return _Context.HeroiGrupo.Any(hg => hg.IdGrupo == idGrupo);
         }
-        
+
 
         public Heroi BuscarHeroiId(long id)
         {
-
-            using (var db = new TourOfHeroesContexto())
-            {
-                var returno = _TourOfHeroesContexto.Heroi.Where(x => x.Id == id).Single();
-                return returno;
-            }
-           
+            var returno = _Context.Heroi.SingleOrDefault(x => x.Id == id);
+            return returno;
         }
 
         public List<Heroi> BuscarHerois()
         {
-            using ( var db = new TourOfHeroesContexto())
-            {
-                return db.Heroi.Include("Tipo").ToList();
-            }
+            return _Context.Heroi.Include("Tipo").ToList();
         }
 
         public void DeletaHeroi(Heroi heroi)
         {
             using (var db = new TourOfHeroesContexto())
             {
-
                 db.Heroi.Remove(heroi);
                 db.SaveChanges();
             }
-
         }
 
         public void AlteraHeroi(Heroi heroi)
@@ -90,32 +70,27 @@ namespace WebApplication1.Data
                 entidade.Poder = heroi.Poder;
 
                 db.SaveChanges();
-               
             }
-
         }
 
         #endregion
 
         #region Grupo
 
-
         public Grupo BuscarGrupoId(long id)
         {
-
             using (var db = new TourOfHeroesContexto())
             {
-                var returno = _TourOfHeroesContexto.Grupo.Where(x => x.Id == id).Single();
+                var returno = _Context.Grupo.Where(x => x.Id == id).Single();
                 return returno;
             }
-
         }
+
         public List<Grupo> BuscarGrupos()
         {
             using (var db = new TourOfHeroesContexto())
             {
                 return db.Grupo.Include("Tipo").Include("GrupoHerois").ToList();
-
             }
         }
 
@@ -126,22 +101,20 @@ namespace WebApplication1.Data
                 var returno = db.Grupo.Any(x => x.Id == id);
                 return returno;
             }
-
         }
 
         public List<HeroiGrupo> BuscarHeroiGrupo()
         {
-
             using (var db = new TourOfHeroesContexto())
             {
                 var list = db.HeroiGrupo.ToList();
                 if (list == null)
                 {
                     return new List<HeroiGrupo>();
-               }
-                return list;
-            } 
+                }
 
+                return list;
+            }
         }
 
 
@@ -152,30 +125,25 @@ namespace WebApplication1.Data
 
         //        db.Grupo.Add(grupo);
         //        db.SaveChanges();
-                
+
         //    }
         //}
 
         public void ExcluirGrupo(int idGrupo)
         {
-            using (var db = new TourOfHeroesContexto())
-            {
-                var entidade = db.Grupo.FirstOrDefault(x => x.Id == idGrupo);
-                db.Grupo.Remove(entidade);
-                db.SaveChanges();
-            }
+            using var db = new TourOfHeroesContexto();
+            var entidade = db.Grupo.FirstOrDefault(x => x.Id == idGrupo);
+            db.Grupo.Remove(entidade);
+            db.SaveChanges();
         }
 
         public void AdicionarGrupo(Grupo grupo)
         {
-
             using (var db = new TourOfHeroesContexto())
             {
                 db.Grupo.Add(grupo);
                 db.SaveChanges();
-               
             }
-        
         }
 
 
@@ -184,23 +152,21 @@ namespace WebApplication1.Data
             using (var db = new TourOfHeroesContexto())
             {
                 var entidadeheroigrupo = db.HeroiGrupo.Where(x => x.IdGrupo == grupo.Id).ToList();
-                entidadeheroigrupo.ForEach(x => {
-                    var h = db.HeroiGrupo.FirstOrDefault(y => y.IdGrupo == x.IdGrupo && y.IdHero == x.IdHero);    
-                    
-                    
+                entidadeheroigrupo.ForEach(x =>
+                {
+                    var h = db.HeroiGrupo.FirstOrDefault(y => y.IdGrupo == x.IdGrupo && y.IdHero == x.IdHero);
+
+
                     db.HeroiGrupo.Remove(h);
-                
-                
                 });
                 db.SaveChanges();
 
                 var entidade = db.Grupo.FirstOrDefault(x => x.Id == grupo.Id);
-                entidade.Nome = grupo.Nome;        
+                entidade.Nome = grupo.Nome;
                 entidade.Idtipo = grupo.Idtipo;
                 entidade.GrupoHerois = grupo.GrupoHerois;
                 db.SaveChanges();
             }
-
         }
 
         #endregion

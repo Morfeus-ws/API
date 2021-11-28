@@ -31,11 +31,12 @@ namespace WebApplication1
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddControllers().AddNewtonsoftJson(x => x.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
+            services.AddDbContext<TourOfHeroesContexto>();
+            services.AddControllers().AddNewtonsoftJson(x =>
+                x.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
             services.AddControllers();
-             services.AddSwaggerGen(c =>
+            services.AddSwaggerGen(c =>
             {
-
                 c.SwaggerDoc("v1", new OpenApiInfo
                 {
                     Version = "v1",
@@ -46,7 +47,6 @@ namespace WebApplication1
                         Name = $"heroApi",
                         Email = string.Empty,
                     }
-
                 });
             });
         }
@@ -68,14 +68,11 @@ namespace WebApplication1
             app.UseSwagger();
             app.UseSwaggerUI();
 
-            app.UseEndpoints(endpoints =>
+            app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
+
+            app.Run(async (context) =>
             {
-                endpoints.MapControllers();
-            });
-
-            app.Run(async (context) => {
-
-               // string connectionString = "User Id=Archerd;Password=fin_contab;Data Source=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=10.171.130.114)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=orcl)));Service Name=orcl;Direct=true";
+                // string connectionString = "User Id=Archerd;Password=fin_contab;Data Source=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=10.171.130.114)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=orcl)));Service Name=orcl;Direct=true";
                 await context.Response.WriteAsync("Hello World");
 
                 using (var db = new TourOfHeroesContexto())
@@ -85,7 +82,6 @@ namespace WebApplication1
 
                     if (t.Count() > 0)
                         Console.WriteLine("All departments in the database:");
-                    
                 }
             });
         }

@@ -8,6 +8,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SolutionFolder", "SolutionFolder", "{C1F60F81-B6FE-49EF-B65B-4F5BB67BB561}"
 ProjectSection(SolutionItems) = preProject
 	.gitignore = .gitignore
+	docs\validacoes.md = docs\validacoes.md
 EndProjectSection
 EndProject
 Global

@@ -9,7 +9,7 @@ using WebApplication1.Model;
 
 namespace WebApplication1.Data
 {
-    public partial class TourOfHeroesContexto : DbContext
+    public class TourOfHeroesContexto : DbContext
     {
         public virtual DbSet<Heroi> Heroi { get; set; }
         public virtual DbSet<Grupo> Grupo { get; set; }
