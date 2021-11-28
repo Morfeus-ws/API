@@ -1,152 +1,109 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using WebApplication1.Model;
-using WebApplication1.Data;
-using Microsoft.EntityFrameworkCore;
-using WebApplication1.Application;
+using WebApplication1.Interfaces;
 
 namespace WebApplication1.Business
 {
-    public class HeroBusiness
+    public class HeroBusiness : IHeroBusiness
     {
+        private readonly ITourOfHeroesRepository _repository;
 
-        private TourOfHeroesRepositorio _tourOfHeroRepoitory;
-
-        public HeroBusiness(TourOfHeroesRepositorio tourOfHeroesRepositorio)
+        public HeroBusiness(ITourOfHeroesRepository tourOfHeroesRepository)
         {
-            _tourOfHeroRepoitory = tourOfHeroesRepositorio;
-        }
-
-        public List<Heroi> RetornaHeros()
-
-
-        {
-            return _tourOfHeroRepoitory.BuscarHerois();
-        }
-
-        public Heroi RetornaHeroId(int id)
-        {
-            var hero = _tourOfHeroRepoitory.BuscarHerois().FirstOrDefault(x => x.Id == id);
-        
-           return hero;
-        }
-
-        public void DeletaHero(int id)
-        {
-           // se passar id inexistente vai bugar
-            List<HeroiGrupo> list = _tourOfHeroRepoitory.BuscarHeroiGrupo();
-             Heroi heroi = _tourOfHeroRepoitory.BuscarHeroiId(id);
-
-
-            // trocar esse codigo pelo metodo ValidaSeHeroiPossuiGrupo
-            var testeid = false;
-            if(!(list.Count == 0))
-            {
-                foreach (var item in list)
-                {
-                    if (item.IdHero == id)
-                    {
-                        testeid = true;
-
-                    }
-
-                }
-
-                if ((testeid))
-                {
-                    throw new Exception("o Heroi não pode ser excluido, pois ele ja participa de um grupo!");
-                }
-
-            }
-             
-           
-
-            _tourOfHeroRepoitory.DeletaHeroi(heroi);
-
- 
-       }
-
-        // receber como parametro HeroDto em vez de Heroi
-        public void AtualizaHero(Heroi heroi)
-        {
-            var heroAntigo = new Heroi(0, heroi.Nome, heroi.Identidade, heroi.Poder, heroi.Idtipo);
-
-            // verificação desnecessaria
-            if (heroAntigo == null)
-            {
-                throw new Exception("Heroi que está sendo atualizado não foi encontrado!");
-            }
-
-            //Tipo não pode ser alterado, pois heroi ja esta em um grupo
-            //Identidade do Heroi não pode ser alterada!
-            ValidaHeroi(heroi);
-
-            if (_tourOfHeroRepoitory.BuscarHeroi(heroi.Id))
-            {
-                throw new Exception("Não existe Heroi");
-
-            }
-
-
-            _tourOfHeroRepoitory.AlteraHeroi(heroi);
-           
+            _repository = tourOfHeroesRepository;
         }
 
 
-        // receber como parametro HeroDto em vez de Heroi
-        public Heroi Criar(Heroi heroi)
+        public IEnumerable<Heroi> GetHerois()
         {
+            return _repository.GetHerois();
+        }
 
-            ValidaHeroi(heroi);
-
-            //var id = Data.Data.heroes.Count + 1;
-            var hero = new Heroi(0, heroi.Nome, heroi.Identidade, heroi.Poder, heroi.Idtipo);
-
-            _tourOfHeroRepoitory.AdicionarHeroi(hero);
-            return hero;
-
-         }
-
-        // alterar metodo para nao referenciar classe Data, e chamar ele na hora de atualizar o heroi
-        public bool ValidaSeHeroiPossuiGrupo(int id)
+        public Heroi GetHeroyById(long id)
         {
+            return _repository.GetHeroiById(id);
+        }
 
-            foreach (Grupo percoreGrupo in Data.Data.grupos)
+        public Heroi CreateHero(Heroi heroi)
+        {
+            ValidateNewHero(heroi);
+            var newHeroi = _repository.CreateHeroi(new Heroi
             {
-                var x = percoreGrupo.GrupoHerois.Where(y => y.IdHero == id).Count();
-                if(x >= 1)
-                {
-                    return true;
-                }
+                Identidade = heroi.Identidade,
+                Idtipo = heroi.Idtipo,
+                Nome = heroi.Nome,
+                Poder = heroi.Poder
+            });
+            return newHeroi;
+        }
 
-            }
+        private void ValidateNewHero(Heroi heroi)
+        {
+            //* [X] Se nome, nome de heroi, poder, estão preenchidos.
+            if (string.IsNullOrWhiteSpace(heroi.Nome) ||
+                string.IsNullOrWhiteSpace(heroi.Identidade) ||
+                string.IsNullOrWhiteSpace(heroi.Poder))
+                throw new HeroiValidationException("Nome, identidade e Poder são dados obrigatorios!");
+            //* [X] Se nome de heroi não está repetido.
+            var existentHero = _repository.GetHeroiByName(heroi.Nome);
+            if (existentHero != null)
+                throw new HeroiValidationException($"Já existe um herói com o nome '{heroi.Nome}'");
+        }
 
-            return false;
+        public void UpdateHero(Heroi heroi)
+        {
+            var updHeroi = ValidateUpdateHero(heroi);
+            // * [ ] só deixar alterar as seguintes informações: Nome de Heroi, poder e tipo.
+            updHeroi.Nome = heroi.Nome;
+            updHeroi.Poder = heroi.Poder;
+            updHeroi.Idtipo = heroi.Idtipo;
+            _repository.UpdateHeroi(updHeroi);
         }
 
 
-        // alterar metodo para ele nao referenciar a classe Data
-        public static void ValidaHeroi(Heroi heroi)
+        private Heroi ValidateUpdateHero(Heroi heroi)
         {
+            var existentHero = _repository.GetHeroiById(heroi.Id);
+            if (existentHero is null)
+                throw new HeroiValidationException($"Heroi #{heroi.Id} inexistente");
 
-            if (heroi.Identidade == "" || heroi.Nome == "" || heroi.Poder == "")
-            {
-                throw new Exception("Nome, identidade e Poder são dados obrigatorios!");
-            }
+            // * [X] Só deixar alterar tipo do heroi se ele não estiver vinculado a nenhum grupo.
+            if (heroi.Idtipo != existentHero.Idtipo && _repository.GetGruposFromHeroi(heroi.Id).Any())
+                throw new HeroiValidationException("Herói não pode alterar tipo se estiver vinculado a um grupo");
 
-            foreach (Heroi heroibusca in Data.Data.heroes)
-            {
-                if (heroibusca.Nome == heroi.Nome)
-                {
-                    throw new Exception("Já existe um Heroi adicionado com esse nome, digite novamente!");
-                }
+            // * [X] Ao alterar nome do heroi, verificar se nome já não existe.
+            if (heroi.Nome.Equals(existentHero.Nome, StringComparison.CurrentCultureIgnoreCase)) return existentHero;
+            var sameNameHero = _repository.GetHeroiByName(heroi.Nome);
+            if (sameNameHero != null)
+                throw new HeroiValidationException($"Já existe um herói com o nome '{sameNameHero.Nome}'");
 
-            }
+            return existentHero;
+        }
+
+        public void DeleteHero(long id)
+        {
+            var existentHero = ValidateDeleteHero(id);
+            _repository.DeleteHeroi(existentHero);
+        }
+
+        private Heroi ValidateDeleteHero(long heroiId)
+        {
+            var existentHero = _repository.GetHeroiById(heroiId);
+            if (existentHero is null)
+                throw new HeroiValidationException($"Heroi #{heroiId} inexistente");
+            // * [X] Se heroi participa de algum grupo, não deixar excluir.
+            if (_repository.GetGruposFromHeroi(heroiId).Any())
+                throw new HeroiValidationException("Impossível excluir herói participante de grupo");
+            return existentHero;
         }
     }
 
-    
-   
+    internal class HeroiValidationException : Exception
+    {
+        public HeroiValidationException(string message) : base(message)
+        {
+        }
+    }
 }

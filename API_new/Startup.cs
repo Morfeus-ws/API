@@ -1,21 +1,15 @@
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.HttpsPolicy;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
-using System.Text.Json.Serialization;
-using Oracle.ManagedDataAccess.Client;
 using Microsoft.AspNetCore.Http;
+using WebApplication1.Business;
 using WebApplication1.Data;
-using WebApplication1.Model;
+using WebApplication1.Interfaces;
 
 namespace WebApplication1
 {
@@ -32,6 +26,10 @@ namespace WebApplication1
         public void ConfigureServices(IServiceCollection services)
         {
             services.AddDbContext<TourOfHeroesContexto>();
+            services
+                .AddScoped<ITourOfHeroesRepository, TourOfHeroesRepository>()
+                .AddScoped<IGrupoBusiness, GrupoBusiness>()
+                .AddScoped<IHeroBusiness, HeroBusiness>();
             services.AddControllers().AddNewtonsoftJson(x =>
                 x.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
             services.AddControllers();
@@ -40,11 +38,11 @@ namespace WebApplication1
                 c.SwaggerDoc("v1", new OpenApiInfo
                 {
                     Version = "v1",
-                    Title = $"heroApi",
-                    Description = $"heroApi",
+                    Title = "heroApi",
+                    Description = "heroApi",
                     Contact = new OpenApiContact
                     {
-                        Name = $"heroApi",
+                        Name = "heroApi",
                         Email = string.Empty,
                     }
                 });
@@ -70,19 +68,17 @@ namespace WebApplication1
 
             app.UseEndpoints(endpoints => { endpoints.MapControllers(); });
 
-            app.Run(async (context) =>
+            app.Run(async context =>
             {
                 // string connectionString = "User Id=Archerd;Password=fin_contab;Data Source=(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=10.171.130.114)(PORT=1521)))(CONNECT_DATA=(SERVICE_NAME=orcl)));Service Name=orcl;Direct=true";
                 await context.Response.WriteAsync("Hello World");
 
-                using (var db = new TourOfHeroesContexto())
-                {
-                    // Creating a new department and saving it to the database
-                    var t = db.Heroi.Where(x => x.Poder != "");
+                await using var db = new TourOfHeroesContexto();
+                // Creating a new department and saving it to the database
+                var t = db.Heroi.Where(x => x.Poder != "");
 
-                    if (t.Count() > 0)
-                        Console.WriteLine("All departments in the database:");
-                }
+                if (t.Any())
+                    Console.WriteLine("All departments in the database:");
             });
         }
     }

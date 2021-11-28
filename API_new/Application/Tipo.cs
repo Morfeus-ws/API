@@ -1,6 +1,4 @@
-﻿using System.ComponentModel;
-
-namespace WebApplication1.Model
+﻿namespace WebApplication1.Model
 {
     public enum EnumTipo
     {

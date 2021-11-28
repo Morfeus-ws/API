@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using System.Collections.Generic;
-using System.Linq;
-using WebApplication1.Business;
-using WebApplication1.Data;
+using WebApplication1.Interfaces;
 using WebApplication1.Model;
 
 namespace WebApplication1.Controllers
@@ -11,54 +9,45 @@ namespace WebApplication1.Controllers
     [Route("[controller]")]
     public class HeroController : ControllerBase
     {
-        //nem eu sei oque fiz aqui, mas ta fucionando
-        private HeroBusiness _heroBusiness = new HeroBusiness(new TourOfHeroesRepositorio(new TourOfHeroesContexto()));
+        private readonly IHeroBusiness _heroBusiness;
+
+        public HeroController(IHeroBusiness heroBusiness)
+        {
+            _heroBusiness = heroBusiness;
+        }
 
 
         [HttpGet]
-        public IEnumerable<Heroi> Get()
+        public ActionResult<IEnumerable<Heroi>> Get()
         {
-            return _heroBusiness.RetornaHeros().ToArray();
-
-
+            return Ok(_heroBusiness.GetHerois());
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("{id:int}")]
         public IActionResult GetHeroId(int id)
         {
-            //return HeroBusiness.RetornaHeroId(id).ToArray();
-
-            return Ok(_heroBusiness.RetornaHeroId(id));
-
+            return Ok(_heroBusiness.GetHeroyById(id));
         }
 
         [HttpPost]
-        public ActionResult <Heroi>Post(Heroi heroi) 
+        public ActionResult<Heroi> Post(Heroi heroi)
         {
-          
-          var hero = _heroBusiness.Criar(heroi);
+            var hero = _heroBusiness.CreateHero(heroi);
             return Ok(hero);
-
         }
 
         [HttpPut]
         public IActionResult Put(Heroi heroi)
         {
-
-
-            _heroBusiness.AtualizaHero(heroi);
+            _heroBusiness.UpdateHero(heroi);
             return Ok();
-
         }
 
         [HttpDelete]
         public IActionResult DeletaHeroId(int id)
         {
-            _heroBusiness.DeletaHero(id);
+            _heroBusiness.DeleteHero(id);
             return Ok();
         }
-
-       
-
     }
 }
