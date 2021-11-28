@@ -39,8 +39,14 @@ namespace WebApplication1.Data
                 var returno = _TourOfHeroesContexto.HeroiGrupo.Any(x => x.IdHero == id);
                 return returno;
             }
-               
         }
+
+        public bool GrupoTemHerois(long idGrupo)
+        {
+            using var db = new TourOfHeroesContexto();
+            return _TourOfHeroesContexto.HeroiGrupo.Any(hg => hg.IdGrupo == idGrupo);
+        }
+        
 
         public Heroi BuscarHeroiId(long id)
         {
