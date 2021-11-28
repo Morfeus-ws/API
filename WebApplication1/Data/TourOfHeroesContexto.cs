@@ -155,13 +155,11 @@ namespace WebApplication1.Data
 
             public override long Next(EntityEntry entry)
             {
-                using (var command = entry.Context.Database.GetDbConnection().CreateCommand())
-                {
-                    command.CommandText = $"SELECT {_sequenceName}.NEXTVAL FROM DUAL";
-                    entry.Context.Database.OpenConnection();
-                    var reader = command.ExecuteScalar();
-                    return Convert.ToInt64(reader);
-                }
+                using var command = entry.Context.Database.GetDbConnection().CreateCommand();
+                command.CommandText = $"SELECT {_sequenceName}.NEXTVAL FROM DUAL";
+                entry.Context.Database.OpenConnection();
+                var reader = command.ExecuteScalar();
+                return Convert.ToInt64(reader);
             }
         }
     }
